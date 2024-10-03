@@ -1,13 +1,13 @@
 import numpy as np
 from numpy import linalg as la
 from tabulate import tabulate
+from scipy.stats import chi2
 
 
 def estimate( 
         y: np.ndarray, x: np.ndarray, transform='', T:int=None
     ) -> list:
-    """Uses the provided estimator (mostly OLS for now, and therefore we do 
-    not need to provide the estimator) to perform a regression of y on x, 
+    """Uses the provided estimator to perform a regression of y on x, 
     and provides all other necessary statistics such as standard errors, 
     t-values etc.  
 
@@ -33,7 +33,7 @@ def estimate(
     residual = y - x@b_hat  # Calculated residuals
     SSR = residual.T@residual  # Sum of squared residuals
     SST = (y - np.mean(y)).T@(y - np.mean(y))  # Total sum of squares
-    R2 = 1 - SSR/SST
+    R2 = 1 - SSR/SST #R^2 value
 
     sigma2, cov, se = variance(transform, SSR, x, T)
     t_values = b_hat/se
@@ -187,3 +187,40 @@ def perm( Q_T: np.ndarray, A: np.ndarray) -> np.ndarray:
         Z[ii_Z, :] = Q_T @ A[ii_A, :]
 
     return Z
+
+def check_rank(x):
+    '''Checks the rank of the matrix x and prints the eigenvalues of the
+    within-transformed x.
+    '''
+    # Check rank of our demeaned x and print it.
+    print(f'Rank of demeaned x: {la.matrix_rank(x)}')
+    
+    # Calculate the eigenvalues of the within-transformed x.
+    lambdas, V = la.eig(x.T@x) # We don't actually use the eigenvectors, as they are not relevant for our case.
+    np.set_printoptions(suppress=True)  # This is just to print nicely.
+    
+    # Print out the eigenvalues
+    print(f'Eigenvalues of within-transformed x: {lambdas.round(decimals=0)}')
+
+def wald_test(b_hat, r, R, cov):
+    '''Calculates the Wald test for the hypothesis Rb = q. 
+    
+    Args:
+        b_hat (np.ndarray): Estimated coefficients from the regression.
+        r (np.ndarray): The value under the null hypothesis.
+        R (np.ndarray): The restriction matrix.
+        cov (np.ndarray): The covariance matrix of the estimated coefficients.
+    
+    Returns:
+        float: The Wald test statistic.
+    '''
+    W = (R @ b_hat - r).T*(R @ cov @ R.T)**(-1)*(R @ b_hat - r)
+    print(f'Wald test statistic: {W[0,0]:.4f}')
+    
+    chi_2_05 = chi2.ppf(1 - 0.05, df=1)  # degrees of freedom = 1
+    chi_2_01 = chi2.ppf(1 - 0.01, df=1)  # degrees of freedom = 1
+    chi_2_00001 = chi2.ppf(1 - 0.00001, df=1)  # degrees of freedom = 1
+
+    print(f'Critical value at the 5% level: {chi_2_05:.4f}')
+    print(f'Critical value at the 1% level: {chi_2_01:.4f}')
+    print(f'Critical value at the 0.001% level: {chi_2_00001:.4f}')

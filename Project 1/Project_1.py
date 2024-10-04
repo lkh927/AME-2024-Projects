@@ -215,12 +215,43 @@ def wald_test(b_hat, r, R, cov):
         float: The Wald test statistic.
     '''
     W = (R @ b_hat - r).T*(R @ cov @ R.T)**(-1)*(R @ b_hat - r)
-    print(f'Wald test statistic: {W[0,0]:.4f}')
+    print(f'Wald test statistic: {W[0,0]:.2f}')
     
-    chi_2_05 = chi2.ppf(1 - 0.05, df=1)  # degrees of freedom = 1
-    chi_2_01 = chi2.ppf(1 - 0.01, df=1)  # degrees of freedom = 1
-    chi_2_00001 = chi2.ppf(1 - 0.00001, df=1)  # degrees of freedom = 1
+    DF_W = R.shape[0]
+    p_val = 1 - chi2.cdf(W.item(), DF_W)
+    chi_2_05 = chi2.ppf(1 - 0.05, df=DF_W)
+    chi_2_01 = chi2.ppf(1 - 0.01, df=DF_W)
+    chi_2_00001 = chi2.ppf(1 - 0.00001, df=DF_W) 
 
+    print(f'The p-value is: {p_val:.8f} (df={DF_W})')
+    print(f'Critical value at the 5% level: {chi_2_05:.4f}')
+    print(f'Critical value at the 1% level: {chi_2_01:.4f}')
+    print(f'Critical value at the 0.001% level: {chi_2_00001:.4f}')
+
+def hausman_test(b_fe, b_re, cov_fe, cov_re):
+    '''Calculates the Wald test for the hypothesis b_fe - b_re = 0.
+    
+    Args:
+        b_fe (np.ndarray): Estimated coefficients from the fixed effects regression.
+        b_re (np.ndarray): Estimated coefficients from the random effects regression.
+        cov_fe (np.ndarray): The covariance matrix of the fixed effects coefficients.
+        cov_re (np.ndarray): The covariance matrix of the random effects coefficients.
+    
+    Returns:
+        float: The Hausman test statistic.
+    '''
+    b_diff = b_fe - b_re
+    cov_diff = cov_fe - cov_re
+    H = b_diff.T @ la.inv(cov_diff) @ b_diff
+    print(f'Hausman test statistic: {H.item():.2f}')
+
+    DF_H = len(b_diff)
+    p_val = 1 - chi2.cdf(H.item(), df=DF_H)
+    chi_2_05 = chi2.ppf(1 - 0.05, df=DF_H)
+    chi_2_01 = chi2.ppf(1 - 0.01, df=DF_H)
+    chi_2_00001 = chi2.ppf(1 - 0.00001, df=DF_H) 
+
+    print(f'The p-value is: {p_val:.8f} (df={DF_H})')
     print(f'Critical value at the 5% level: {chi_2_05:.4f}')
     print(f'Critical value at the 1% level: {chi_2_01:.4f}')
     print(f'Critical value at the 0.001% level: {chi_2_00001:.4f}')

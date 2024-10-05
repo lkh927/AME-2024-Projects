@@ -55,6 +55,7 @@ def est_ols( y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     return la.inv(x.T@x)@(x.T@y)
 
+
 def variance( 
         transform: str, 
         SSR: float, 
@@ -188,6 +189,7 @@ def perm( Q_T: np.ndarray, A: np.ndarray) -> np.ndarray:
 
     return Z
 
+
 def check_rank(x):
     '''Checks the rank of the matrix x and prints the eigenvalues of the
     within-transformed x.
@@ -201,6 +203,7 @@ def check_rank(x):
     
     # Print out the eigenvalues
     print(f'Eigenvalues of within-transformed x: {lambdas.round(decimals=0)}')
+
 
 def wald_test(b_hat, r, R, cov):
     '''Calculates the Wald test for the hypothesis Rb = q. 
@@ -227,6 +230,7 @@ def wald_test(b_hat, r, R, cov):
     print(f'Critical value at the 5% level: {chi_2_05:.4f}')
     print(f'Critical value at the 1% level: {chi_2_01:.4f}')
     print(f'Critical value at the 0.001% level: {chi_2_00001:.4f}')
+
 
 def hausman_test(b_fe, b_re, cov_fe, cov_re):
     '''Calculates the Wald test for the hypothesis b_fe - b_re = 0.

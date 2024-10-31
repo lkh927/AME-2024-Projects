@@ -104,5 +104,81 @@ def group_data(dat):
     return vv_outcome, vv_key_explanatory, vv_excluded, vv_all
 
 
+def investigate_data(regions, dat, vv_outcome, vv_key, vv_all):
+    def shares_all(regions):
+        shares_all = {}
+        for region in regions:
+            region_count_all = dat[region].sum()
+            shares_all[region] = (region_count_all / len(dat)) * 100
+        return shares_all
+
+    # creating a dictionary for the varibale density by regions for all variables
+    shares_all = {}
+
+    # looping through all variables by region and transforming the counts to shares
+    for region in regions:
+        region_count_all = dat[region].sum()
+        shares_all[region] = (region_count_all / len(dat)) * 100
+
+    africa_share_all = shares_all['africa']
+    americas_share_all = shares_all['americas']
+    asia_share_all = shares_all['asia']
+    oceania_share_all = shares_all['oceania']
+    europe_share_all = shares_all['europe']
+
+    # Create a DataFrame to present the shares in a table
+    shares_df = pd.DataFrame({
+        'Region': ['Africa', 'Americas', 'Asia', 'Oceania', 'Europe'],
+        'All_share (%)': [round(africa_share_all, 4), 
+                        round(americas_share_all, 4), 
+                        round(asia_share_all, 4), 
+                        round(oceania_share_all, 4), 
+                        round(europe_share_all, 4)]})
+    
+    # creating a dictionary for the varibale density by regions for key variables (gdp_growth and lgdp_initial)
+    shares_key = {}
+    key_rows = dat[vv_outcome + vv_key].notnull().all(axis=1)
+
+    for region in regions:
+        region_rows_key = key_rows & (dat[region] == 1.0)
+        region_count_key = region_rows_key.sum()
+        shares_key[region] = (region_count_key / key_rows.sum()) * 100
+
+    africa_share_key = shares_key['africa']
+    americas_share_key = shares_key['americas']
+    asia_share_key = shares_key['asia']
+    europe_share_key = shares_key['europe']
+    oceania_share_key = shares_key['oceania']
+
+    shares_df['Key_share (%)'] = [
+        round(africa_share_key, 4), 
+        round(americas_share_key, 4), 
+        round(asia_share_key, 4),
+        round(oceania_share_key, 4), 
+        round(europe_share_key, 4)]
+    
+    # creating a dictionary for the varibale density by regions for included variables
+    shares_included = {}
+    included_rows = dat[vv_outcome + vv_key + vv_all['all']].notnull().all(axis=1)
+
+    for region in regions:
+        region_rows_included = included_rows & (dat[region] == 1.0)
+        region_count_included = region_rows_included.sum()
+        shares_included[region] = (region_count_included / included_rows.sum()) * 100
+
+    africa_share_included = shares_included['africa']
+    americas_share_included = shares_included['americas']
+    asia_share_included = shares_included['asia']
+    europe_share_included = shares_included['europe']
+    oceania_share_included = shares_included['oceania']
+
+    shares_df['Included_share (%)'] = [
+        round(africa_share_included,4), 
+        round(americas_share_included,4), 
+        round(asia_share_included,4),
+        round(oceania_share_included,4), 
+        round(europe_share_included,4)]
+    
+    return shares_df
 
 

@@ -12,6 +12,8 @@ dat = pd.read_csv('growth.csv')
 lbldf = pd.read_csv('labels.csv', index_col='variable')
 lbl_all = lbldf.label.to_dict() # as a dictionary
 
+
+''' Data preprocessing '''
 def filter_data(dat):
     ''' A function to filter the data and investigate missing values.
     Inputs = data set to filter 
@@ -162,4 +164,131 @@ def investigate_data(regions, dat, vv_outcome, vv_key, vv_all):
     
     return shares_df
 
+
+''' Data analysis and Lasso Estimation'''
+
+def z_stat():
+    # Calculate the z statistic that corresponds to the 95% confidence interval of a two-sided test
+    q = norm.ppf(1-0.025)
+
+    return q
+
+def standardize(X):
+    ''' A function to standardize data
+
+    Input = data to standardize
+    Output = standardized data '''
+
+    X_tilde = (X - X.mean(axis=0)) / X.std(axis=0)
+    return X_tilde
+
+def BRT(x, y):
+    ''' A general function to calculate the BRT penalty.
+
+    Inputs: regressors (x), 
+    outcome variable of interest (g),
+
+    Output: BRT penalty '''
+    
+    (N, p) = x.shape
+    sigma = np.std(y, ddof=1) # variance of the variable of interest
+    c = 1.1 # penalty factor
+    alpha = 0.05 # significance level, corresponds to 95% confidence interval
+
+    penalty_BRT= (c * sigma) / np.sqrt(N) * norm.ppf(1 - alpha / (2*p))
+
+    print("lambda_BRT =",penalty_BRT.round(4))
+
+    return penalty_BRT
+
+def BCCH(x, y):
+    ''' A function to calculate the BCCH penalty.
+    Inputs: regressors (x),
+    outcome variable of interest (y),
+    
+    Output: BCCH penalty '''
+
+    n,p = x.shape
+    c = 1.1 # penalty factor
+    alpha = 0.05 # significance level
+
+    yxscale = (np.max((x.T ** 2) @ ((y-np.mean(y)) ** 2) / n)) ** 0.5
+    penalty_pilot = c / np.sqrt(n) * norm.ppf(1-alpha/(2*p)) * yxscale # Note: Have divided by 2 due to Python definition of Lasso
+    
+    # Create predicted value using Lasso 
+    pred = Lasso(alpha=penalty_pilot).fit(x,y).predict(x)
+
+    # Updated penalty
+    eps = y - pred #eps: epsilon/residuals 
+    epsxscale = (np.max((x.T ** 2) @ (eps ** 2) / n)) ** 0.5
+    penalty_BCCH = c / np.sqrt(n) * norm.ppf(1-alpha/(2*p))*epsxscale
+
+    print("lambda_BCCH =",penalty_BCCH.round(4))
+
+    return penalty_BCCH
+
+def lasso(x, y, penalty):
+    # Implied estimates and selection
+    fit = Lasso(penalty, max_iter=10000).fit(x,y)
+    coeff = fit.coef_
+    intercept = fit.intercept_
+
+    print('Intercept/constant: ', np.round(intercept,3))
+    print('Coefficients: ', np.round(coeff,3))
+
+    return fit, coeff, intercept
+
+def var_single(x, y, coefs):
+    # Estimate variance for single post Lasso
+    N = x.shape[0]
+    res = y - x @ coefs
+    SSR = res.T @ res
+    sigma2 = SSR/(N-x.shape[1])
+    var_single = sigma2*la.inv(x.T@x)
+
+    return var_single
+
+def var_double(x, y, res1, res2):
+    # Estimate variance for post double Lasso
+    N = x.shape[0]
+    num = res1**2 @ res2**2 / N
+    denom = (res_BRTy0z.T @ res_BRTy0z / N)**2
+    sigma2_double = num/denom
+
+    return sigma2_double
+
+def standard_errors(var):
+    # Calculate standard errors
+    se = np.sqrt(np.diagonal(var)).reshape(-1, 1)
+    se = se[1][0]
+
+    return se
+
+def residuals(y,x,w):
+    ''' Calculate residuals for the double Lasso estimation.
+    Inputs: all regressors (x),
+    main regressor of interest (w),
+    regressors MINUS main regressor of interest (s),
+    outcome variable of interest (y),
+    fitted values for all regressors and main outcome variable of interest (fityx),
+    fitted values for 
+
+
+    Outputs: residuals for the main regressor of interest) '''
+
+    res_BRTyx = y - fit.predict(x)
+    res_BRTgxz = res_BRTgx + w * coeff_BRTgx[0]
+    res_BRTy0z = y - fit_BRTy0z.predict()
+
+    return res_BRTgx, res_BRTgxz, res_BRTy0z
+
+# Calculate residuals
+res_BRTgx = g - fit_BRTgx.predict(X_tilde)
+res_BRTgxz = res_BRTgx + y0_tilde * coeff_BRTgx[0]
+res_BRTy0z = y0 - fit_BRTy0z.predict(Z_tilde)
+
+# Calculate beta_y0
+num = res_BRTy0z@res_BRTgxz
+denom = res_BRTy0z@y0
+coef_BRT_PDL = num/denom
 

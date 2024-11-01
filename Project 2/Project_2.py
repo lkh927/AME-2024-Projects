@@ -18,7 +18,7 @@ def filter_data(dat):
     Output = missing data counts for each region and all data '''
 
     # Filter the dataset to include only rows where 'gdp_growth' is non-missing
-    filtered_dat = dat[dat[['gdp_growth', 'lgdp_initial']].notnull().all(axis=1)]
+    filtered_dat = dat[dat[['gdp_growth', 'lgdp_initial', 'investment_rate']].notnull().all(axis=1)]
 
     # Count the number of times all variables in the filtered dataset are non-missing
     non_missing_counts = filtered_dat.notnull().sum()
@@ -56,7 +56,9 @@ def filter_data(dat):
     print('Filtered data displayed by non-missing values for each region:')
     print(non_missing_counts_df.to_string(index=False))
     print(f'Data contains {len(non_missing_counts_df)} variables')
-
+    print('')
+    print('40 top rows extracted and formatted for Latex:')
+    print(pd.DataFrame.to_latex(non_missing_counts_df.head(40), index=False))
     return
 
 def group_data(dat):
@@ -86,7 +88,7 @@ def group_data(dat):
                 'lt100km', 'excolony', 'democ00a', 'democ1', 'cons00a',
                 'pdivhmi', 'pdivhmi_aa',
                 #due to lack of relevance or perfect correlation with included variables:
-                    'code', 'gdp_initial', 'lpop_initial',
+                    'code', 'gdp_initial', 'lpop_initial', 'pd1500.1',
                 #reference variables:
                     'pother', 'europe', 'lp_bl']
 
@@ -129,34 +131,13 @@ def investigate_data(regions, dat, vv_outcome, vv_key, vv_all):
     # Create a DataFrame to present the shares in a table
     shares_df = pd.DataFrame({
         'Region': ['Africa', 'Americas', 'Asia', 'Oceania', 'Europe'],
-        'All_share (%)': [round(africa_share_all, 4), 
-                        round(americas_share_all, 4), 
-                        round(asia_share_all, 4), 
-                        round(oceania_share_all, 4), 
-                        round(europe_share_all, 4)]})
+        'All_share (%)': [round(africa_share_all, 2), 
+                        round(americas_share_all, 2), 
+                        round(asia_share_all, 2), 
+                        round(oceania_share_all, 2), 
+                        round(europe_share_all, 2)]})
     
-    # creating a dictionary for the varibale density by regions for key variables (gdp_growth and lgdp_initial)
-    shares_key = {}
-    key_rows = dat[vv_outcome + vv_key].notnull().all(axis=1)
-
-    for region in regions:
-        region_rows_key = key_rows & (dat[region] == 1.0)
-        region_count_key = region_rows_key.sum()
-        shares_key[region] = (region_count_key / key_rows.sum()) * 100
-
-    africa_share_key = shares_key['africa']
-    americas_share_key = shares_key['americas']
-    asia_share_key = shares_key['asia']
-    europe_share_key = shares_key['europe']
-    oceania_share_key = shares_key['oceania']
-
-    shares_df['Key_share (%)'] = [
-        round(africa_share_key, 4), 
-        round(americas_share_key, 4), 
-        round(asia_share_key, 4),
-        round(oceania_share_key, 4), 
-        round(europe_share_key, 4)]
-    
+   
     # creating a dictionary for the varibale density by regions for included variables
     shares_included = {}
     included_rows = dat[vv_outcome + vv_key + vv_all['all']].notnull().all(axis=1)
@@ -173,11 +154,11 @@ def investigate_data(regions, dat, vv_outcome, vv_key, vv_all):
     oceania_share_included = shares_included['oceania']
 
     shares_df['Included_share (%)'] = [
-        round(africa_share_included,4), 
-        round(americas_share_included,4), 
-        round(asia_share_included,4),
-        round(oceania_share_included,4), 
-        round(europe_share_included,4)]
+        round(africa_share_included,2), 
+        round(americas_share_included,2), 
+        round(asia_share_included,2),
+        round(oceania_share_included,2), 
+        round(europe_share_included,2)]
     
     return shares_df
 

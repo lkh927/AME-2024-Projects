@@ -165,8 +165,7 @@ def investigate_data(regions, dat, vv_outcome, vv_key, vv_all):
     return shares_df
 
 
-''' Data analysis and Lasso Estimation'''
-
+''' Data analysis and Lasso Estimation '''
 def z_stat():
     # Calculate the z statistic that corresponds to the 95% confidence interval of a two-sided test
     q = norm.ppf(1-0.025)
@@ -186,29 +185,30 @@ def BRT(x, y):
     ''' A general function to calculate the BRT penalty.
 
     Inputs: regressors (x), 
-    outcome variable of interest (g),
+    outcome variable of interest (y),
 
     Output: BRT penalty '''
     
-    (N, p) = x.shape
+    (n,p) = x.shape
     sigma = np.std(y, ddof=1) # variance of the variable of interest
     c = 1.1 # penalty factor
     alpha = 0.05 # significance level, corresponds to 95% confidence interval
 
-    penalty_BRT= (c * sigma) / np.sqrt(N) * norm.ppf(1 - alpha / (2*p))
+    penalty_BRT= (c * sigma) / np.sqrt(n) * norm.ppf(1 - alpha / (2*p))
 
     print("lambda_BRT =",penalty_BRT.round(4))
 
     return penalty_BRT
 
 def BCCH(x, y):
-    ''' A function to calculate the BCCH penalty.
+    ''' A general function to calculate the BCCH penalty.
+
     Inputs: regressors (x),
     outcome variable of interest (y),
     
     Output: BCCH penalty '''
 
-    n,p = x.shape
+    (n,p) = x.shape
     c = 1.1 # penalty factor
     alpha = 0.05 # significance level
 
@@ -221,6 +221,7 @@ def BCCH(x, y):
     # Updated penalty
     eps = y - pred #eps: epsilon/residuals 
     epsxscale = (np.max((x.T ** 2) @ (eps ** 2) / n)) ** 0.5
+
     penalty_BCCH = c / np.sqrt(n) * norm.ppf(1-alpha/(2*p))*epsxscale
 
     print("lambda_BCCH =",penalty_BCCH.round(4))
@@ -228,6 +229,13 @@ def BCCH(x, y):
     return penalty_BCCH
 
 def lasso(x, y, penalty):
+    ''' A general function to estimate using Lasso 
+    Inputs: regressors (x),
+    outcome variable of interest (y),
+    penalty value (can be either BRT or BCCH)
+    
+    Output: Lasso fit, coefficients, and intercept '''
+
     # Implied estimates and selection
     fit = Lasso(penalty, max_iter=10000).fit(x,y)
     coeff = fit.coef_
@@ -238,10 +246,10 @@ def lasso(x, y, penalty):
 
     return fit, coeff, intercept
 
-def var_single(x, y, coefs):
+def var_single(x, y, coeffs):
     # Estimate variance for single post Lasso
     N = x.shape[0]
-    res = y - x @ coefs
+    res = y - x @ coeffs
     SSR = res.T @ res
     sigma2 = SSR/(N-x.shape[1])
     var_single = sigma2*la.inv(x.T@x)
@@ -260,15 +268,38 @@ def var_double(x, res1, res2):
     # Estimate variance for post double Lasso
     N = x.shape[0]
     num = res1**2 @ res2**2 / N
-    denom = (res1.T @ res1 / N)**2
+    denom = (res1.T @ res1 / N) **2
     sigma2_double = num/denom
 
     return sigma2_double
 
-def standard_errors(var):
-    # Calculate standard errors
-    se = np.sqrt(np.diagonal(var)).reshape(-1, 1)
-    se = se[1][0]
+def standard_errors1(var):
+    # Calculate standard errors for SPL
+    se1 = np.sqrt(np.diagonal(var)).reshape(-1, 1)
+    se1 = se1[1][0]
 
-    return se
+    return se1
 
+def standard_errors2(x, sigma2):
+    # Calculate standard errors for PDL
+    N = x.shape
+    se2 = np.sqrt(sigma2/N)
+    se2 = se2[0]
+
+    return se2
+
+
+def beta(w, resws, resyxs):
+    ''' A function to estimate beta 
+    
+    Inputs: main regressor of interest (w),
+    residuals of main regressor of interest and remaining regressors (resws),
+    residuals of outcome variable and remaining regressors (resyxs) 
+    
+    Output: beta '''
+    
+    num = resws @ resyxs
+    denom = resws @ w
+    beta = num/denom
+
+    return beta

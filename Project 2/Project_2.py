@@ -248,11 +248,19 @@ def var_single(x, y, coefs):
 
     return var_single
 
-def var_double(x, y, res1, res2):
+def var_double(x, res1, res2):
+    ''' A function to estimate the variance for the post double Lasso estimation.
+    Inputs: regressors (x),
+    outcome variable of interest (y),
+    residuals from the first Lasso estimation (res1),
+    residuals from the second Lasso estimation (res2)
+    
+    Output: variance for the post double Lasso estimation '''
+
     # Estimate variance for post double Lasso
     N = x.shape[0]
     num = res1**2 @ res2**2 / N
-    denom = (res_BRTy0z.T @ res_BRTy0z / N)**2
+    denom = (res1.T @ res1 / N)**2
     sigma2_double = num/denom
 
     return sigma2_double
@@ -263,32 +271,4 @@ def standard_errors(var):
     se = se[1][0]
 
     return se
-
-def residuals(y,x,w):
-    ''' Calculate residuals for the double Lasso estimation.
-    Inputs: all regressors (x),
-    main regressor of interest (w),
-    regressors MINUS main regressor of interest (s),
-    outcome variable of interest (y),
-    fitted values for all regressors and main outcome variable of interest (fityx),
-    fitted values for 
-
-
-    Outputs: residuals for the main regressor of interest) '''
-
-    res_BRTyx = y - fit.predict(x)
-    res_BRTgxz = res_BRTgx + w * coeff_BRTgx[0]
-    res_BRTy0z = y - fit_BRTy0z.predict()
-
-    return res_BRTgx, res_BRTgxz, res_BRTy0z
-
-# Calculate residuals
-res_BRTgx = g - fit_BRTgx.predict(X_tilde)
-res_BRTgxz = res_BRTgx + y0_tilde * coeff_BRTgx[0]
-res_BRTy0z = y0 - fit_BRTy0z.predict(Z_tilde)
-
-# Calculate beta_y0
-num = res_BRTy0z@res_BRTgxz
-denom = res_BRTy0z@y0
-coef_BRT_PDL = num/denom
 

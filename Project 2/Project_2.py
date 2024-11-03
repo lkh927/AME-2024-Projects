@@ -178,7 +178,7 @@ def standardize(X):
     Input = data to standardize
     Output = standardized data '''
 
-    X_tilde = (X - X.mean(axis=0)) / X.std(axis=0)
+    X_tilde = (X - np.mean(X, axis=0))/np.std(X, axis=0, ddof=1)
     return X_tilde
 
 def BRT(x, y):

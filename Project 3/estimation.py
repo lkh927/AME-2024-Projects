@@ -48,7 +48,7 @@ def estimate(
 
     # collect output in a dict 
     res = {
-        'theta': result.x,
+        'beta': result.x,
         'se':       se,
         't': result.x / se,
         'cov':      cov,
@@ -171,10 +171,10 @@ def print_table(
         title (str, optional): Table title. Defaults to "Results".
         num_decimals: (int) where to round off results (=None to disable)
     """
-    assert len(theta_label) == len(results['theta'])
+    assert len(theta_label) == len(results['beta'])
     
     tab = pd.DataFrame({
-       'theta': results['theta'], 
+       'b_hat': results['beta'], 
         'se': results['se'], 
         't': results['t']
         }, index=theta_label)

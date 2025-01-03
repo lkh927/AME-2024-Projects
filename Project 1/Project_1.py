@@ -2,6 +2,7 @@ import numpy as np
 from numpy import linalg as la
 from tabulate import tabulate
 from scipy.stats import chi2
+from scipy import stats
 
 
 def estimate( 
@@ -35,11 +36,11 @@ def estimate(
     SST = (y - np.mean(y)).T@(y - np.mean(y))  # Total sum of squares
     R2 = 1 - SSR/SST #R^2 value
 
-    sigma2, cov, se = variance(transform, SSR, x, T)
+    sigma2, cov, se, df = variance(transform, SSR, x, T)
     t_values = b_hat/se
     
-    names = ['b_hat', 'se', 'sigma2', 't_values', 'R2', 'cov']
-    results = [b_hat, se, sigma2, t_values, R2, cov]
+    names = ['b_hat', 'se', 'sigma2', 't_values', 'R2', 'cov', 'df']
+    results = [b_hat, se, sigma2, t_values, R2, cov, df]
     return dict(zip(names, results))
 
     
@@ -95,17 +96,20 @@ def variance(
 
     # Calculate sigma2
     if transform in ('', 'fd', 'be'):
-        sigma2 = (np.array(SSR/(N - K)))
+        df = N - K 
+        sigma2 = (np.array(SSR/(df)))
     elif transform.lower() == 'fe':
-        sigma2 = np.array(SSR/(N * (T - 1) - K))
+        df = N * (T - 1) - K
+        sigma2 = np.array(SSR/df)
     elif transform.lower() == 're':
-        sigma2 = np.array(SSR/(T * N - K))
+        df = T * N - K
+        sigma2 = np.array(SSR/df)
     else:
         raise Exception('Invalid transform provided.')
     
     cov = sigma2*la.inv(x.T@x)
     se = np.sqrt(cov.diagonal()).reshape(-1, 1)
-    return sigma2, cov, se
+    return sigma2, cov, se, df
 
 
 def print_table(
@@ -191,18 +195,17 @@ def perm( Q_T: np.ndarray, A: np.ndarray) -> np.ndarray:
 
 
 def check_rank(x):
-    '''Checks the rank of the matrix x and prints the eigenvalues of the
-    within-transformed x.
+    '''Checks the rank of the matrix x and prints the eigenvalues of the transformed x.
     '''
-    # Check rank of our demeaned x and print it.
-    print(f'Rank of demeaned x: {la.matrix_rank(x)}')
+    # Check rank of the transformed x and print it.
+    print(f'Rank of transformed x: {la.matrix_rank(x)}')
     
     # Calculate the eigenvalues of the within-transformed x.
     lambdas, V = la.eig(x.T@x) # We don't actually use the eigenvectors, as they are not relevant for our case.
     np.set_printoptions(suppress=True)  # This is just to print nicely.
     
     # Print out the eigenvalues
-    print(f'Eigenvalues of within-transformed x: {lambdas.round(decimals=0)}')
+    print(f'Eigenvalues of transformed x: {lambdas.round(decimals=0)}')
 
 
 def wald_test(b_hat, r, R, cov):
@@ -259,3 +262,91 @@ def hausman_test(b_fe, b_re, cov_fe, cov_re):
     print(f'Critical value at the 5% level: {chi_2_05:.4f}')
     print(f'Critical value at the 1% level: {chi_2_01:.4f}')
     print(f'Critical value at the 0.001% level: {chi_2_00001:.4f}')
+
+def export_to_latex(
+    results_list: list,
+    col_headers: list,
+    var_names_list: list,
+    filename: str,
+    label_x: list = None,
+    **kwargs
+) -> None:
+    """
+    Exports regression results to a LaTeX table and saves it as a .txt file.
+
+    Args:
+        results_list (list): List of result dictionaries from the estimate function.
+        col_headers (list): List of column headers (e.g., ['OLS', 'FE', 'FD']).
+        var_names_list (list): List of lists of variable names for each result.
+        filename (str): The filename to save the LaTeX table (should end with .txt).
+        title (str, optional): The title of the table.
+        label_x (list, optional): List of variable names to include in the table in desired order.
+    """
+    num_models = len(results_list)
+
+    # Generate the list of all variables to include in the table
+    if label_x is None:
+        label_x = var_names_list[0]  # Default to variables from the first model
+
+    # Start constructing the LaTeX table
+    lines = []
+
+    lines.append("\\begin{tabular}{" + "l" + "c" * num_models + "}")
+    lines.append("\\hline\\hline\\\\[-1.8ex]")
+    header_row = [""] + col_headers
+    lines.append(" & ".join(header_row) + " \\\\")
+    lines.append("\\hline")
+
+    # For each variable in label_x
+    for var_name in label_x:
+        estimate_row = [var_name]
+        se_row = ['']
+        for result, var_names in zip(results_list, var_names_list):
+            if var_name in var_names:
+                idx = var_names.index(var_name)
+                b_hat = result.get('b_hat')[idx][0]
+                se = result.get('se')[idx][0]
+                t_value = result.get('t_values')[idx][0]
+                df = result.get('df')
+
+                # Calculate p-value
+                p_value = 2 * (1 - stats.t.cdf(abs(t_value), df))
+
+                # Determine the number of stars based on p-value
+                if p_value < 0.01:
+                    stars = '***'
+                elif p_value < 0.05:
+                    stars = '**'
+                elif p_value < 0.10:
+                    stars = '*'
+                else:
+                    stars = ''
+
+                # Append coefficient with stars
+                estimate_row.append(f"{b_hat:.4f}{stars}")
+                # Append standard error in parentheses
+                se_row.append(f"({se:.4f})")
+            else:
+                # Variable not in this model
+                estimate_row.append("")
+                se_row.append("")
+
+        # Write estimate row
+        lines.append(" & ".join(estimate_row) + " \\\\")
+        # Write standard error row
+        lines.append(" & ".join(se_row) + " \\\\")
+
+    # Additional statistics
+    lines.append("\\hline")
+    statistics = ["R-squared"] + [f"{result.get('R2').item():.3f}" for result in results_list]
+    lines.append(" & ".join(statistics) + " \\\\")
+    lines.append("\\hline\\hline")
+
+    # End of table
+    lines.append("\\end{tabular}")
+
+    # Save to file
+    with open(filename, 'w') as f:
+        f.write('\n'.join(lines))
+
+    print(f"LaTeX table saved to {filename}")

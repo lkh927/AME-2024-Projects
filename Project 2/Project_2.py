@@ -19,7 +19,7 @@ def filter_data(dat):
     Inputs = data set to filter 
     Output = missing data counts for each region and all data '''
 
-    # Filter the dataset to include only rows where 'gdp_growth' is non-missing
+    # Filter the dataset to include only rows where 'gdp_growth', 'lgdp_inital' and 'investment_rate' is non-missing
     filtered_dat = dat[dat[['gdp_growth', 'lgdp_initial', 'investment_rate']].notnull().all(axis=1)]
 
     # Count the number of times all variables in the filtered dataset are non-missing

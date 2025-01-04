@@ -242,21 +242,11 @@ def lasso(x, y, penalty):
     intercept = fit.intercept_
 
     print('Intercept/constant: ', np.round(intercept,3))
-    print('Coefficients: ', np.round(coeff,3))
+    # print(f'Coefficients chosen: ')
 
     return fit, coeff, intercept
 
-def var_single(x, y, coeffs):
-    # Estimate variance for single post Lasso
-    N = x.shape[0]
-    res = y - x @ coeffs
-    SSR = res.T @ res
-    sigma2 = SSR/(N-x.shape[1])
-    var_single = sigma2*la.inv(x.T@x)
-
-    return var_single
-
-def var_double(x, res1, res2):
+def var(x, res1, res2):
     ''' A function to estimate the variance for the post double Lasso estimation.
     Inputs: regressors (x),
     outcome variable of interest (y),
@@ -273,14 +263,7 @@ def var_double(x, res1, res2):
 
     return sigma2_double
 
-def standard_errors1(var):
-    # Calculate standard errors for SPL
-    se1 = np.sqrt(np.diagonal(var)).reshape(-1, 1)
-    se1 = se1[1][0]
-
-    return se1
-
-def standard_errors2(x, sigma2):
+def standard_errors(x, sigma2):
     # Calculate standard errors for PDL
     N = x.shape
     se2 = np.sqrt(sigma2/N)

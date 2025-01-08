@@ -220,7 +220,7 @@ def wald_test(b_hat, r, R, cov):
     Returns:
         float: The Wald test statistic.
     '''
-    W = (R @ b_hat - r).T*(R @ cov @ R.T)**(-1)*(R @ b_hat - r)
+    W = (R @ b_hat - r).T @ np.linalg.inv((R @ cov @ R.T)) @ (R @ b_hat - r)
     print(f'Wald test statistic: {W[0,0]:.2f}')
     
     DF_W = R.shape[0]

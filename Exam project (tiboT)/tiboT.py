@@ -13,8 +13,7 @@ def starting_values(y,x):
     res = y - x@b_ols 
     sig2hat = 1./(N-K) * np.dot(res, res)
     sighat = np.sqrt(sig2hat) # our convention is that we estimate sigma, not sigma squared
-    mu = np.mean(res)
-    theta0 = np.append(b_ols, sighat, mu)
+    theta0 = np.append(b_ols, sighat)
     return theta0 
 
 def q(theta, y, x): 
@@ -25,9 +24,9 @@ def loglikelihood(theta, y, x):
     assert theta.ndim == 1, f'theta should be 1-dimensional'
 
     # unpack parameters 
-    b = theta[:-2] # first K parameters are betas, the last is sigma 
-    sig = np.abs(theta[-2]) # take abs() to ensure positivity 
-    mu = theta[-1]
+    b = theta[:-1] # first K parameters are betas, the last is sigma 
+    sig = np.abs(theta[-1]) # take abs() to ensure positivity 
+    mu = np.mean(y - x@b)
     N,K = x.shape
 
     xb_s = x@b + mu / sig
@@ -53,11 +52,11 @@ def predict(theta, x):
         E: E(y|x)
         E_neg: E(y|x, y<0) 
     '''
-    b = theta[:-2]
-    s = theta[-2]
-    m = theta[-1]
+    b = theta[:-1]
+    s = theta[-1]
+    #m = theta[-1]
     xb = x@b 
-    E = xb * (1 - norm.cdf((xb + m)/ s)) + s * norm.pdf((xb + m)/ s)
+    E = xb * (1 - norm.cdf(xb/ s) + s * norm.pdf(xb/ s))
     Eneg = xb - s * mills_ratio(-xb/s)
     return E, Eneg
 

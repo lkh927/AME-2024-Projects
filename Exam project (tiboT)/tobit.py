@@ -1,6 +1,5 @@
 import numpy as np 
 from scipy.stats import norm
-from numpy import linalg as la
 
 name = 'Tobit'
 
@@ -13,31 +12,38 @@ def loglikelihood(theta, y, x):
 
     # unpack parameters 
     b = theta[:-1] # first K parameters are betas, the last is sigma 
-    sig = np.abs(theta[-1]) # take abs() to ensure positivity (in case the optimizer decides to try negatives)
-    
-    phi = norm.cdf((y-x@b)/sig)
-    Phi = norm.pdf(x@b/sig)
+    sig = np.abs(theta[-1]) # take abs() to ensure positivity 
+    N,K = x.shape
+
+    xb_s = x@b / sig
+    Phi = norm.cdf(xb_s)
+
+    u_s = (y - x@b)/sig
+    phi = norm.pdf(u_s) / sig
+
+    # avoid taking log of zero
     Phi = np.clip(Phi, 1e-8, 1.-1e-8)
 
-    ll =  (y==0)*np.log(1-Phi) + (y>0)*np.log(phi/sig) # HINT: you can get indicator functions by using (y>0) and (y==0)
+    # loglikelihood function 
+    ll = (y == 0.0) * np.log(1.0-Phi) + (y > 0) * np.log(phi)
 
     return ll
-
-def mills_ratio(z): 
-    return norm.pdf(z) / norm.cdf(z)
 
 def starting_values(y,x): 
     '''starting_values
     Returns
         theta: K+1 array, where theta[:K] are betas, and theta[-1] is sigma (not squared)
     '''
-    N,K = x.shape
+    N,K = x.shape 
     b_ols = np.linalg.solve(x.T@x, x.T@y)
-    res = y - x@b_ols
+    res = y - x@b_ols 
     sig2hat = 1./(N-K) * np.dot(res, res)
     sighat = np.sqrt(sig2hat) # our convention is that we estimate sigma, not sigma squared
     theta0 = np.append(b_ols, sighat)
     return theta0 
+
+def mills_ratio(z): 
+    return norm.pdf(z) / norm.cdf(z)
 
 def predict(theta, x): 
     '''predict(): the expected value of y given x 
@@ -51,20 +57,3 @@ def predict(theta, x):
     E = xb * norm.cdf(xb/s) + s*norm.pdf(xb/s)
     Epos = xb + s*mills_ratio(xb/s)
     return E, Epos
-
-def sim_data(theta, N:int): 
-    b = theta[:-1]
-    sig = theta[-1]
-    K=b.size
-
-    # FILL IN : x will need to contain 1s (a constant term) and randomly generated variables
-    xx = np.random.normal(size = (N,K-1)) # fill in
-    oo = np.ones((N,1))
-    x  = np.hstack([oo,xx])
-
-    eps = np.random.normal(loc=0, scale=sig, size=(N,))
-    y_lat= x@b + eps
-    assert y_lat.ndim==1
-    y = np.fmax(y_lat, 0.0)
-
-    return y,x

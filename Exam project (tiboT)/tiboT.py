@@ -14,29 +14,29 @@ def starting_values(y,x):
     b_ols = np.linalg.solve(x.T@x, x.T@y)
     res = y - x@b_ols 
     mu = np.mean(res)
-    sig2hat = 1./(N-K) * np.dot(res, res)
-    sighat = np.sqrt(sig2hat) # our convention is that we estimate sigma, not sigma squared
+    sig2hat = 1./(N-K) * np.dot(res, res) 
+    sighat = np.sqrt(sig2hat) 
     theta0 = np.append(b_ols, sighat)
     theta0 = np.append(theta0, mu)
     return theta0
 
 def q(theta, y, x): 
-    return loglikelihood(theta, y, x)
+    return loglikelihood(theta, y, x) # not taking the negative, as we are truly minimizing
 
 def loglikelihood(theta, y, x): 
     assert y.ndim == 1, f'y should be 1-dimensional'
     assert theta.ndim == 1, f'theta should be 1-dimensional'
 
     # unpack parameters 
-    b = theta[:-2] 
-    sig = np.abs(theta[1]) # take abs() to ensure positivity 
-    mu = theta[2]
+    b = theta[:-1] 
+    sig = np.abs(theta[-1]) # take abs() to ensure positivity 
+    mu = np.mean(y - x@b)
     N,K = x.shape
 
     xb_s = (x@b + mu) / sig
     Phi = norm.cdf(xb_s)
 
-    u_s = (y - (mu + x@b)) / sig
+    u_s = (y - (x@b + mu)) / sig
     phi = norm.pdf(u_s) / sig
 
     # avoid taking log of zero

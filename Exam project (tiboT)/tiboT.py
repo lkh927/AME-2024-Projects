@@ -56,7 +56,7 @@ def predict(theta, x):
     s = theta[-1]
     #m = theta[-1]
     xb = x@b 
-    E = xb * (1 - norm.cdf(xb/ s) + s * norm.pdf(xb/ s))
+    E = ((1 - norm.cdf((m + xb)/ s))(m+xb) - s * norm.pdf((m+xb)/ s))
     Eneg = xb - s * mills_ratio(-xb/s)
     return E, Eneg
 
